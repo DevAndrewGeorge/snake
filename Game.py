@@ -11,6 +11,7 @@ class Game:
   SNAKE = 1
   FOOD = -1
   CLEAR = 0
+  WALL = 2
 
   HEAD = 0
   TAIL = -1
@@ -19,6 +20,15 @@ class Game:
   RIGHT = Position(1,0)
   UP = Position(0, -1)
   DOWN = Position(0, 1)
+
+  RESULT = {
+    "lose": -1,
+    "nothing": 0,
+    "move": 1,
+    "eat": 10,
+    "win": 20
+  }
+
 
   def __init__(self, width, height):
     # 
@@ -47,45 +57,77 @@ class Game:
 
     # out of bounds
     if x < 0 or x >= self.width or y < 0 or y >= self.height:
-      return False
+      return Game.WALL
 
     # collided with self
-    elif self.board[x][y] == Game.SNAKE:
-      return False
+    elif self.board[x][y] == Game.SNAKE and new_head != self.snake[Game.TAIL]:
+      return Game.SNAKE
    
-    return True
+    return Game.CLEAR
+
+  def _note(self, start, direction, result):
+    return {
+      "start": start,
+      "finish": self._state(),
+      "direction": [direction.width(), direction.height()],
+      "result": result
+    }
+
+  def _state(self):
+    return {
+      "width": self.width,
+      "height": self.height,
+      "state": self.board.flatten().tolist(),
+      "snake": [[piece.width(), piece.height()] for piece in self.snake],
+      "food": [self.food.width(), self.food.height()]
+    }
 
   def move(self, direction):
+    #
+    result = Game.RESULT["nothing"]
+    start_state = self._state()
+
     # noting potentially changing board positions
     new_head = self.snake[Game.HEAD] + direction
     old_tail = self.snake[Game.TAIL]
 
-    # checking move is valid
+    # do nothing if impossible move performed
     if not self._validate_move(new_head):
-      raise InvalidMovException()
+      return Game.RESULT["nothing"]
 
-    # checking win condition
-    if not self._evaulate_move(new_head):
-      raise GameOverException()
+    # checking if game has been lost
+    if self._evaulate_move(new_head) is not Game.CLEAR:
+      result = Game.RESULT["lose"]
   
     # check if food was eaten
     full = False
     if new_head == self.food:
-      print("Full!")
+      result = Game.RESULT["eat"]
       full = True
+    elif result is not Game.RESULT["lose"]:
+      result = Game.RESULT["move"]
 
     # updating snake
     self.snake = (new_head,) + (self.snake if full else self.snake[:Game.TAIL])
 
     # updating board
-    self._mark_snake(new_head)
     if not full:
       self._mark_clear(old_tail)
+  
+    if self._evaulate_move(new_head) is not Game.WALL:
+      self._mark_snake(new_head)
 
+    # checking if game has been won
+    if len(self.snake) == self.width * self.height and result is not Game.RESULT["lose"]:
+      result = Game.RESULT["win"]
+    
     # generating new food
-    if full:
+    if full and result is not Game.RESULT["win"]:
       self.food = self._find_random(Game.CLEAR)
       self._mark_food(self.food)
+    
+    
+    return self._note(start_state, direction, result)
 
   def print(self):
     text = ""
