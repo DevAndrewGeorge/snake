@@ -8,18 +8,27 @@ class InvalidMovException(BaseException):
   pass
 
 class Game:
-  SNAKE = 1
-  FOOD = -1
-  CLEAR = 0
-  WALL = 2
+  PIECES = {
+    "food": -1,
+    "clear": 0,
+    "wall": 1,
+    "snake": 10,
+    "head": 11,
+    "tail": 12
+  }
 
-  HEAD = 0
-  TAIL = -1
+  SNAKE = {
+    "head": 0,
+    "tail": -1
+  }
 
-  LEFT = Position(-1, 0)
-  RIGHT = Position(1,0)
-  UP = Position(0, -1)
-  DOWN = Position(0, 1)
+  MOVES = {
+    "left": Position(-1, 0),
+    "right": Position(1,0),
+    "up": Position(0, -1),
+    "down": Position(0, 1)
+  }
+  
 
   RESULT = {
     "lose": -1,
@@ -37,9 +46,9 @@ class Game:
 
     # configuring board
     self.board = numpy.zeros(shape=(self.width, self.height), dtype=int)
-    self.snake = (self._find_random(Game.CLEAR),)
-    self._mark_snake( self.snake[Game.HEAD] )
-    self.food = self._find_random(Game.CLEAR)
+    self.snake = (self._find_random(Game.PIECES["clear"]),)
+    self._mark_snake( self.snake[Game.SNAKE["head"]] )
+    self.food = self._find_random(Game.PIECES["clear"])
     self._mark_food( self.food )
   
   def _validate_move(self, new_head):
@@ -57,46 +66,50 @@ class Game:
 
     # out of bounds
     if x < 0 or x >= self.width or y < 0 or y >= self.height:
-      return Game.WALL
+      return Game.PIECES["wall"]
 
     # collided with self
-    elif self.board[x][y] == Game.SNAKE and new_head != self.snake[Game.TAIL]:
-      return Game.SNAKE
+    elif self.board[x][y] == Game.PIECES["snake"]:
+      return Game.PEICES["snake"]
    
-    return Game.CLEAR
+    return Game.PIECES["clear"]
 
   def _note(self, start, direction, result):
     return {
       "start": start,
-      "finish": self._state(),
+      "finish": self.state(),
       "direction": [direction.width(), direction.height()],
       "result": result
     }
 
-  def _state(self):
+  def state(self):
+    head = self.snake[Game.SNAKE["head"]]
+    tail = self.snake[Game.SNAKE["tail"]]
     return {
       "width": self.width,
       "height": self.height,
       "state": self.board.flatten().tolist(),
       "snake": [[piece.width(), piece.height()] for piece in self.snake],
+      "head": [head.width(), head.height()],
+      "tail": [tail.width(), tail.height()],
       "food": [self.food.width(), self.food.height()]
     }
 
   def move(self, direction):
     #
     result = Game.RESULT["nothing"]
-    start_state = self._state()
+    start_state = self.state()
 
     # noting potentially changing board positions
-    new_head = self.snake[Game.HEAD] + direction
-    old_tail = self.snake[Game.TAIL]
+    new_head = self.snake[Game.SNAKE["head"]] + direction
+    old_tail = self.snake[Game.SNAKE["tail"]]
 
     # do nothing if impossible move performed
     if not self._validate_move(new_head):
       return Game.RESULT["nothing"]
 
     # checking if game has been lost
-    if self._evaulate_move(new_head) is not Game.CLEAR:
+    if self._evaulate_move(new_head) is not Game.PIECES["clear"]:
       result = Game.RESULT["lose"]
   
     # check if food was eaten
@@ -108,13 +121,13 @@ class Game:
       result = Game.RESULT["move"]
 
     # updating snake
-    self.snake = (new_head,) + (self.snake if full else self.snake[:Game.TAIL])
+    self.snake = (new_head,) + (self.snake if full else self.snake[:Game.SNAKE["tail"]])
 
     # updating board
     if not full:
       self._mark_clear(old_tail)
   
-    if self._evaulate_move(new_head) is not Game.WALL:
+    if self._evaulate_move(new_head) is not Game.PIECES["wall"]:
       self._mark_snake(new_head)
 
     # checking if game has been won
@@ -123,7 +136,7 @@ class Game:
     
     # generating new food
     if full and result is not Game.RESULT["win"]:
-      self.food = self._find_random(Game.CLEAR)
+      self.food = self._find_random(Game.PIECES["clear"])
       self._mark_food(self.food)
     
     
@@ -134,12 +147,18 @@ class Game:
     for row in range(self.height):
       for col in range(self.width):
         mark = self.board[col][row]
-        if mark == Game.SNAKE:
-          text = text + "O"
-        elif mark == Game.FOOD:
-          text = text + "x"
-        elif mark == Game.CLEAR:
-          text = text + "."
+        c = None
+        if mark == Game.PIECES["snake"]:
+          c = "O"
+        elif mark == Game.PIECES["food"]:
+          c = "X"
+        elif mark == Game.PIECES["clear"]:
+          c = "."
+        elif mark == Game.PIECES["head"]:
+          c = "H"
+        elif mark == Game.PIECES["tail"]:
+          c = "T"
+        text = text + c
       text = text + "\n"
     return text
 
@@ -155,10 +174,16 @@ class Game:
     self.board[position.width()][position.height()] = marking
   
   def _mark_clear(self, position):
-    self._mark(position, Game.CLEAR)
+    self._mark(position, Game.PIECES["clear"])
   
   def _mark_food(self, position):
-    self._mark(position, Game.FOOD)
+    self._mark(position, Game.PIECES["food"])
   
   def _mark_snake(self, position):
-    self._mark(position, Game.SNAKE)
+    self._mark(position, Game.PIECES["snake"])
+
+  def _mark_head(self, position):
+    self._mark(position, Game.PIECES["head"])
+
+  def _mark_tail(self, position):
+    self._mark(position, Game.PIECES["tail"])
