@@ -16,7 +16,7 @@ Options:
   -h HEIGHT, --height HEIGHT  [default: 5]
   -s --save  Save gameplay data
   -o DATA_DIR, --output DATA_DIR  [default: ./data]
-  -m MODEL, --model MODEL [default: rand]
+  -m MODEL, --model MODEL  [default: random]
 """
 import sys
 import os
@@ -44,10 +44,12 @@ def simulate(board_width, board_height, model, log=False, display=False):
     if display:
       print(snake.print())
     
-    state = move = model.choose_move(snake.state())
-
+    move = model.choose_move(snake.state())
+    state = snake.move(move)
+    if state is Snake.RESULT["nothing"]:
+      continue
     if log:
-      log.write(json.dumps(state))
+      log.write("{}\n".format(json.dumps(state)))
 
 
     result = state["result"]
@@ -59,7 +61,7 @@ def simulate(board_width, board_height, model, log=False, display=False):
       break
   
   if log:
-    close(log)
+    log.close()
 
 
 
@@ -69,14 +71,14 @@ def main():
   print(args)
 
   available_models = {
-    "user": models.UserWasdModel,
-    "random": models.RandomModel
+    "user": models.UserWasdModel(),
+    "random": models.RandomModel()
   }
 
   width = int(args["--width"])
   height = int(args["--height"])
-  log = create_log_file() if args["--save"] else None
   if args["play"]:
+    log = create_log_file(args["--output"]) if args["--save"] else None
     simulate(
       width,
       height,
@@ -86,10 +88,11 @@ def main():
     )
   elif args["simulate"]:
     for _ in range(int(args["NUM_GAMES"])):
+      log = create_log_file(args["--output"]) if args["--save"] else None
       simulate(
         width,
         height,
-        available_models[args["MODEL"]],
+        available_models[args["--model"]],
         log,
         display=False
       )

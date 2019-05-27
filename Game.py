@@ -47,7 +47,7 @@ class Game:
     # configuring board
     self.board = numpy.zeros(shape=(self.width, self.height), dtype=int)
     self.snake = (self._find_random(Game.PIECES["clear"]),)
-    self._mark_snake( self.snake[Game.SNAKE["head"]] )
+    self._mark_head( self.snake[Game.SNAKE["head"]] )
     self.food = self._find_random(Game.PIECES["clear"])
     self._mark_food( self.food )
   
@@ -70,7 +70,7 @@ class Game:
 
     # collided with self
     elif self.board[x][y] == Game.PIECES["snake"]:
-      return Game.PEICES["snake"]
+      return Game.PIECES["snake"]
    
     return Game.PIECES["clear"]
 
@@ -101,9 +101,10 @@ class Game:
     start_state = self.state()
 
     # noting potentially changing board positions
-    new_head = self.snake[Game.SNAKE["head"]] + direction
+    old_head = self.snake[Game.SNAKE["head"]]
     old_tail = self.snake[Game.SNAKE["tail"]]
-
+    new_head = self.snake[Game.SNAKE["head"]] + direction
+    
     # do nothing if impossible move performed
     if not self._validate_move(new_head):
       return Game.RESULT["nothing"]
@@ -124,11 +125,13 @@ class Game:
     self.snake = (new_head,) + (self.snake if full else self.snake[:Game.SNAKE["tail"]])
 
     # updating board
-    if not full:
-      self._mark_clear(old_tail)
-  
+    self._mark_clear(old_head)
+    self._mark_clear(old_tail)
+    if len(self.snake) > 1:
+      self._mark_snake(old_head)
+      self._mark_tail(self.snake[Game.SNAKE["tail"]])
     if self._evaulate_move(new_head) is not Game.PIECES["wall"]:
-      self._mark_snake(new_head)
+      self._mark_head(new_head)
 
     # checking if game has been won
     if len(self.snake) == self.width * self.height and result is not Game.RESULT["lose"]:
