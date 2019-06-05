@@ -26,7 +26,8 @@ class Game:
     "left": Position(-1, 0),
     "right": Position(1,0),
     "up": Position(0, -1),
-    "down": Position(0, 1)
+    "down": Position(0, 1),
+    "none": Position(0, 0)
   }
   
 
@@ -43,6 +44,9 @@ class Game:
     # 
     self.width = width
     self.height = height
+
+    # 
+    self.moves = [ ]
 
     # configuring board
     self.board = numpy.zeros(shape=(self.width, self.height), dtype=int)
@@ -89,6 +93,7 @@ class Game:
       "width": self.width,
       "height": self.height,
       "state": self.board.flatten().tolist(),
+      "move": self.moves[-1] if len(self.moves) > 0 else Position(0, 0),
       "snake": [[piece.width(), piece.height()] for piece in self.snake],
       "head": [head.width(), head.height()],
       "tail": [tail.width(), tail.height()],
@@ -108,6 +113,9 @@ class Game:
     # do nothing if impossible move performed
     if not self._validate_move(new_head):
       return Game.RESULT["nothing"]
+
+    # saving move
+    self.moves.append(direction)
 
     # checking if game has been lost
     if self._evaulate_move(new_head) is not Game.PIECES["clear"]:

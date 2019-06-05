@@ -13,6 +13,8 @@ class Position:
     return (self.width(), self.height())
   
   def __eq__(self, other):
+    if type(other) == list:
+      other = Position(other[0], other[1])
     return self._x == other._x and self._y == other._y
 
   def __add__(self, other):
