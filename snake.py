@@ -3,20 +3,23 @@
 
 Usage:
   snake --help
+  snake --list-models
   snake [-w WIDTH] [-h HEIGHT] [-s [-o DATA_DIR]] play
-  snake [-w WIDTH] [-h HEIGHT] [-s [-o DATA_DIR]] [-m MODEL] simulate NUM_GAMES
+  snake [-w WIDTH] [-h HEIGHT] [-s [-o DATA_DIR]] [-m MODEL] [-d] simulate NUM_GAMES
 
 Arguments:
   NUM_GAMES  The number of games to be simulated.
   DATA_DIR   The directory where game states will be saved.
-  MODEL      The decision-making model to use. Current values: random, user.
+  MODEL      The decision-making model to use.
 
 Options:
   -w WIDTH, --width WIDTH     [default: 5]
   -h HEIGHT, --height HEIGHT  [default: 5]
-  -s --save  Save gameplay data
+  -s, --save  Save gameplay data
   -o DATA_DIR, --output DATA_DIR  [default: ./data]
   -m MODEL, --model MODEL  [default: random]
+  --list-models
+  -d, --display
 """
 import sys
 import os
@@ -68,16 +71,18 @@ def simulate(board_width, board_height, model, log=False, display=False):
 
 def main():
   args = docopt(__doc__, options_first=True)
-  print(args)
 
   available_models = {
     "user": models.UserWasdModel(),
-    "random": models.RandomModel()
+    "random": models.RandomModel(),
+    "knn": models.KnnModel()
   }
 
   width = int(args["--width"])
   height = int(args["--height"])
-  if args["play"]:
+  if args["--list-models"]:
+    print("user, random, knn")
+  elif args["play"]:
     log = create_log_file(args["--output"]) if args["--save"] else None
     simulate(
       width,
@@ -94,7 +99,7 @@ def main():
         height,
         available_models[args["--model"]],
         log,
-        display=False
+        args["--display"]
       )
 
 if __name__ == "__main__":
